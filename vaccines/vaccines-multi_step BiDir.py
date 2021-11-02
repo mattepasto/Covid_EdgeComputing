@@ -162,10 +162,10 @@ def plot_forecasts(series, forecasts, n_test):
 series = read_csv(r'.\datasets\vaccinations_italy.csv', header=0, parse_dates=[2], index_col=2, squeeze=True)
 new_series = series['daily_vaccinations_raw']
 # configure
-n_lag = 7	# equals to lookback
+n_lag = 5	# equals to lookback
 n_seq = 15	# step I want to predict
 n_test = 30	# starting point for the multistep prediction
-n_epochs = 50
+n_epochs = 100
 n_batch = 1		# must be 1 otherwise can't plot
 n_neurons = 1
 # prepare data

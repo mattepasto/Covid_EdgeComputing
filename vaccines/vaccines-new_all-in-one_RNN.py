@@ -29,14 +29,6 @@ train_size = int(len(dataset) * 0.80)
 test_size = len(dataset) - train_size
 train, test = dataset[0:train_size,:], dataset[train_size:len(dataset),:]
 
-lookback = 5   # 5; optimal value for vanilla is 15
-# A “lookback period” defines how many previous timesteps are used in order to predict the subsequent timestep. 
-# In this regard, we are using a one-step prediction model. The lookback period is set to 5 in this instance. 
-# This means that we are using the time steps at t-4, t-3, t-2, t-1, and t to predict the value at time t+1.
-
-#n_neurons = 32  # 8 # 16
-n_batch = 1
-
 # Create input dataset
 # The input shape should be [samples, time steps, features]
 def create_dataset (X, look_back = 1):
@@ -49,7 +41,12 @@ def create_dataset (X, look_back = 1):
         
     return np.array(Xs), np.array(ys)
 
-#lookback = 15   # 5
+lookback = 5
+# A “lookback period” defines how many previous timesteps are used in order to predict the subsequent timestep. 
+# In this regard, we are using a one-step prediction model. The lookback period is set to 5 in this instance. 
+# This means that we are using the time steps at t-4, t-3, t-2, t-1, and t to predict the value at time t+1.
+
+n_batch = 1
 #n_neurons = 32  # 8 # 16   ---> EVERY MODEL A DIFFERNT NUM OF NEURONS!
 n_features = 1
 X_train, y_train = create_dataset(train, lookback)
@@ -68,7 +65,7 @@ def create_lstm(units):
     model = Sequential()
     # Input layer
     model.add(LSTM(units = units, batch_input_shape=(n_batch, n_features, lookback), stateful=True)) # return_sequences=True
-    model.add(Dropout(0.2)) # 23/09: Every LSTM layer should be accompanied by a Dropout layer. 
+    model.add(Dropout(0.01)) # 23/09: Every LSTM layer should be accompanied by a Dropout layer. 
                             # This layer will help to prevent overfitting by ignoring randomly selected neurons during training, 
                             # and hence reduces the sensitivity to the specific weights of individual neurons. 
                             # 20% is often used as a good compromise between retaining model accuracy and preventing overfitting.
@@ -78,17 +75,17 @@ def create_lstm(units):
     model.compile(optimizer='adam',loss='mse')
     return model
 
-model_lstm = create_lstm(8)
+model_lstm = create_lstm(16)
 
 # Create Stacked LSTM model: we use two hidden layers
 def create_stacked_lstm(units):
     model = Sequential()
     # Input layer
     model.add(LSTM(units = units, return_sequences=True, batch_input_shape=(n_batch,X_train.shape[1], X_train.shape[2]),stateful=True))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.01))
     # First hidden layer
     model.add(LSTM(units = units))#, return_sequences=True))
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.01))
     '''# Second hidden layer
     model.add(LSTM(units = units))
     model.add(Dropout(0.2))'''
@@ -98,7 +95,7 @@ def create_stacked_lstm(units):
     model.compile(optimizer='adam',loss='mse')
     return model
 
-model_stacked_lstm = create_stacked_lstm(2)
+model_stacked_lstm = create_stacked_lstm(4)
 
 # Create vanilla GRU model
 def create_gru(units):
@@ -106,7 +103,7 @@ def create_gru(units):
     # Input layer 
     model.add(GRU (units = units, return_sequences = False, 
                  input_shape = [X_train.shape[1], X_train.shape[2]]))
-    model.add(Dropout(0.2)) 
+    model.add(Dropout(0.01)) 
     # Output layer
     model.add(Dense(1)) 
     #Compile model
@@ -114,7 +111,7 @@ def create_gru(units):
    
     return model
 
-model_gru = create_gru(8)
+model_gru = create_gru(4)
 
 # Create stacked GRU model
 def create_stacked_gru(units):
@@ -122,10 +119,10 @@ def create_stacked_gru(units):
     # Input layer 
     model.add(GRU (units = units, return_sequences = True, 
                  input_shape = [X_train.shape[1], X_train.shape[2]]))
-    model.add(Dropout(0.2)) 
+    model.add(Dropout(0.01)) 
     # Hidden layer
     model.add(GRU(units = units))                 
-    model.add(Dropout(0.2))
+    model.add(Dropout(0.01))
     # Output layer
     model.add(Dense(units = 1)) 
     #Compile model
@@ -133,7 +130,7 @@ def create_stacked_gru(units):
    
     return model
 
-model_stacked_gru = create_stacked_gru(4)
+model_stacked_gru = create_stacked_gru(2)
 
 # Create BiLSTM model
 def create_bilstm(units):
@@ -167,14 +164,14 @@ model_bigru= create_bigru(1)
 
 def fit_model(model):
     # This callback will stop the training when there is no improvement in the loss for 'patience' consecutive epochs.
-    early_stop = EarlyStopping(monitor = 'val_loss', patience = 10, verbose=1)  
-    history = model.fit(X_train, y_train, epochs = 50, validation_split = 0, #0.2
+    early_stop = EarlyStopping(monitor = 'val_loss', patience = 30, verbose=1)  
+    history = model.fit(X_train, y_train, epochs = 100, validation_split = 0, #0.2
                     batch_size = 1, validation_data=(X_test, y_test), shuffle = False, callbacks = [early_stop]) # batch_size = 16
     return history
 
 # Plot train loss and validation loss
 def plot_loss (history, model_name):
-    plt.figure(figsize = (10, 6))
+    #plt.figure(figsize = (10, 6))  # commented in order to use subplot
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('Model Train vs Validation Loss for ' + model_name)
@@ -190,16 +187,17 @@ history_bilstm = fit_model(model_bilstm)
 history_bigru = fit_model(model_bigru)
 
 # Plotting losses for each model
+plt.subplot(2, 3, 1)
 plot_loss (history_lstm, 'Vanilla LSTM')
-#plt.show()
+plt.subplot(2, 3, 2)
 plot_loss (history_stacked_lstm, 'Stacked LSTM')
-#plt.show()
+plt.subplot(2, 3, 3)
 plot_loss (history_gru, 'Vanilla GRU')
-#plt.show()
+plt.subplot(2, 3, 4)
 plot_loss (history_stacked_gru, 'Stacked GRU')
-#plt.show()
+plt.subplot(2, 3, 5)
 plot_loss (history_bilstm, 'Bidirectional LSTM')
-#plt.show()
+plt.subplot(2, 3, 6)
 plot_loss (history_bigru, 'Bidirectional GRU')
 plt.show()
 
@@ -225,17 +223,9 @@ prediction_bigru = prediction(model_bigru)
 # Plot test data vs prediction
 def plot_future(prediction_test, prediction_train, model_name):
     
-    plt.figure(figsize=(10, 6))
+    #plt.figure(figsize=(10, 6))
     
     plt.plot(scaler.inverse_transform(dataset),label='Dataset')
-    '''# plot the forecasts in red -> 09/10: provato ma non va; vedi meglio domani!
-    for i in range(len(prediction_train)):
-        off_s = len(dataset) + i - 1
-        print(len(prediction_train[i]))
-        off_e = off_s + len(prediction_train[i]) + 1
-        xaxis = [x for x in range(off_s, off_e)]
-        yaxis = [dataset[off_s]] + prediction_train[i]
-        plt.plot(xaxis, yaxis, color='red')'''
     # shift train predictions for plotting
     trainPredictPlot = np.empty_like(dataset)
     trainPredictPlot[:, :] = np.nan
@@ -251,16 +241,17 @@ def plot_future(prediction_test, prediction_train, model_name):
     plt.xlabel('Time (day)')
     plt.ylabel('Daily vaccinations')
 
+plt.subplot(2, 3, 1)
 plot_future(prediction_lstm[0], prediction_lstm[1], 'Vanilla LSTM')
-#plt.show()
+plt.subplot(2, 3, 2)
 plot_future(prediction_stacked_lstm[0], prediction_stacked_lstm[1], 'Stacked LSTM')
-#plt.show()
+plt.subplot(2, 3, 3)
 plot_future(prediction_gru[0], prediction_gru[1], 'Vanilla GRU')
-#plt.show()
+plt.subplot(2, 3, 4)
 plot_future(prediction_stacked_gru[0], prediction_stacked_gru[1], 'Stacked GRU')
-#plt.show()
+plt.subplot(2, 3, 5)
 plot_future(prediction_bilstm[0], prediction_bilstm[1], 'Bidirectional LSTM')
-#plt.show()
+plt.subplot(2, 3, 6)
 plot_future(prediction_bigru[0], prediction_bigru[1], 'Bidirectional GRU')
 plt.show()
 

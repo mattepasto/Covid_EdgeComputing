@@ -30,7 +30,6 @@ lookback = 7   # 5; optimal value for vanilla is 15
 # In this regard, we are using a one-step prediction model. The lookback period is set to 5 in this instance. 
 # This means that we are using the time steps at t-4, t-3, t-2, t-1, and t to predict the value at time t+1.
 
-#n_neurons = 32  # 8 # 16
 n_batch = 1
 
 # Create input dataset
@@ -45,7 +44,6 @@ def create_dataset (X, look_back = 1):
         
     return np.array(Xs), np.array(ys)
 
-#lookback = 15   # 5
 #n_neurons = 32  # 8 # 16   ---> EVERY MODEL A DIFFERNT NUM OF NEURONS!
 n_features = 1
 X_train, y_train = create_dataset(train, lookback)
@@ -224,14 +222,6 @@ def plot_future(prediction_test, prediction_train, model_name):
     plt.figure(figsize=(10, 6))
     
     plt.plot(scaler.inverse_transform(dataset),label='Dataset')
-    '''# plot the forecasts in red -> 09/10: provato ma non va; vedi meglio domani!
-    for i in range(len(prediction_train)):
-        off_s = len(dataset) + i - 1
-        print(len(prediction_train[i]))
-        off_e = off_s + len(prediction_train[i]) + 1
-        xaxis = [x for x in range(off_s, off_e)]
-        yaxis = [dataset[off_s]] + prediction_train[i]
-        plt.plot(xaxis, yaxis, color='red')'''
     # shift train predictions for plotting
     trainPredictPlot = np.empty_like(dataset)
     trainPredictPlot[:, :] = np.nan

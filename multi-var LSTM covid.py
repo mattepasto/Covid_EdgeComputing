@@ -121,11 +121,6 @@ train_X = train_X.reshape((train_X.shape[0], train_X.shape[2]))
 inv_xhat = concatenate((xhat, train_X[:, 1:]), axis=1)
 inv_xhat = scaler.inverse_transform(inv_xhat)
 inv_xhat = inv_xhat[:,0]
-'''# invert scaling for actual
-test_X = test_X.reshape((len(test_X), 1))
-inv_x = concatenate((test_X, train_X[:, 1:]), axis=1)
-inv_x = scaler.inverse_transform(inv_x)
-inv_x = inv_x[:,0]'''
 # calculate RMSE
 rmse = sqrt(mean_squared_error(inv_y, inv_yhat))
 print('Test RMSE: %.3f' % rmse)
